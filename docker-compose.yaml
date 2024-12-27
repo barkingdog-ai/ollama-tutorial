@@ -1,0 +1,42 @@
+x-default: &default
+  restart: always
+  tty: true
+  stdin_open: true
+
+services:
+  ollama:
+    <<: *default
+    image: ollama/ollama
+    container_name: ollama
+    environment:
+      TZ: "Asia/Taipei"
+      OLLAMA_KEEP_ALIVE: -1
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./ollama:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    volumes:
+      - ./open-webui:/app/backend/data
+    depends_on:
+      - ollama
+    ports:
+      - 8080:8080
+    environment:
+      - "OLLAMA_BASE_URL=http://ollama:11434"
+      - "WEBUI_SECRET_KEY="
+
+networks:
+  default:
+    name: ollama_net
+    driver: bridge
